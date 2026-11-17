@@ -1,0 +1,55 @@
+# =====================================================================
+# Farmacia en la nube: Oracle + Spring Boot + Caddy (HTTPS automático)
+#   1. cp .env.example .env   y edita las claves y el dominio
+#   2. docker compose up -d --build
+#   3. Abre https://TU_DOMINIO  (la primera vez Oracle tarda 1-3 min en crear la base)
+# =====================================================================
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim      # Oracle Database 23ai Free (x86 y ARM)
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_SYS_PASSWORD}
+      APP_USER: farmacia
+      APP_USER_PASSWORD: ${DB_PASS}
+      TZ: America/Bogota
+    volumes:
+      - oracle-datos:/opt/oracle/oradata                           # los datos sobreviven a reinicios
+      - ./initdb:/container-entrypoint-initdb.d:ro                 # se ejecuta SOLO la primera vez
+      - ../FarmaciaSpring/scripts:/scripts:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 20s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
+  app:
+    build: ../FarmaciaSpring
+    restart: unless-stopped
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: farmacia
+      DB_PASS: ${DB_PASS}
+      SPRING_THYMELEAF_CACHE: "true"
+
+  caddy:                                   # proxy inverso con certificado HTTPS gratis (Let's Encrypt)
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-datos:/data
+    depends_on:
+      - app
+
+volumes:
+  oracle-datos:
+  caddy-datos:

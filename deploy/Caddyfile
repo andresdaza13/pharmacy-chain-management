@@ -1,0 +1,6 @@
+# Caddy obtiene y renueva solo el certificado HTTPS para tu dominio.
+# HTTPS es obligatorio para que el celular pueda "instalar" la app (PWA).
+{$DOMINIO} {
+    encode gzip
+    reverse_proxy app:8080
+}
