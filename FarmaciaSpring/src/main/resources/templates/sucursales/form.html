@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Sucursal · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('sucursales')}"></th:block>
+
+<main class="estrecho">
+    <h1 th:text="${form.id == null} ? 'Nueva sucursal' : 'Editar sucursal'">Sucursal</h1>
+
+    <div th:if="${error}" class="alerta error" role="alert" th:text="${error}"></div>
+
+    <form th:action="@{/sucursales/guardar}" th:object="${form}" method="post" class="formulario">
+        <input type="hidden" th:field="*{id}">
+
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" th:field="*{nombre}" maxlength="100" autofocus placeholder="Ej.: Sucursal Centro">
+        <span class="campo-error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+
+        <label for="direccion">Dirección</label>
+        <input type="text" id="direccion" th:field="*{direccion}" maxlength="150" autocomplete="street-address">
+
+        <div class="dos-columnas">
+            <div>
+                <label for="idCiudad">Ciudad</label>
+                <select id="idCiudad" th:field="*{idCiudad}">
+                    <option value="">-- Selecciona --</option>
+                    <option th:each="c : ${ciudades}" th:value="${c.id()}" th:text="${c.texto()}">Ciudad</option>
+                </select>
+            </div>
+            <div>
+                <label for="nuevaCiudad">…o escribe una ciudad nueva</label>
+                <input type="text" id="nuevaCiudad" th:field="*{nuevaCiudad}" maxlength="80" placeholder="Ej.: Cali">
+            </div>
+        </div>
+
+        <div class="botones">
+            <button type="submit" class="btn principal">Guardar</button>
+            <a class="btn secundario" th:href="@{/sucursales}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
