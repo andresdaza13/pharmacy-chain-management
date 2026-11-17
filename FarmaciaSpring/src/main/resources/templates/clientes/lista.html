@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Pacientes · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('clientes')}"></th:block>
+
+<main>
+    <div class="encabezado"><div><h1>Pacientes</h1><p class="subtitulo">Personas a las que se les registra una venta (clientes de la farmacia).</p></div></div>
+
+    <div th:if="${ok}" class="alerta ok" th:text="${ok}"></div>
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+
+    <div class="herramientas">
+        <form th:action="@{/clientes}" method="get" class="buscador">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar">
+            <button type="submit" class="btn">Buscar</button>
+            <a class="btn secundario" th:href="@{/clientes}">Ver todos</a>
+        </form>
+        <a class="btn principal" sec:authorize="hasAnyRole('ADMIN','ADMIN_SUCURSAL')" th:href="@{/clientes/nuevo}">+ Nuevo paciente</a>
+    </div>
+
+    <div class="tabla-contenedor">
+        <table>
+            <thead>
+            <tr><th>ID</th><th>Nombre</th><th>Documento</th><th>Teléfono</th><th>Correo</th><th>Dirección</th><th>Registro</th><th sec:authorize="hasAnyRole('ADMIN','ADMIN_SUCURSAL')">Acciones</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${clientes}">
+                <td th:text="${c.id()}">1</td>
+                <td th:text="${c.nombre() + ' ' + c.apellido()}">Nombre</td>
+                <td th:text="${c.documento()}">Doc</td>
+                <td th:text="${c.telefono()}">Tel</td>
+                <td th:text="${c.email()}">Correo</td>
+                <td th:text="${c.direccion()}">Dirección</td>
+                <td th:text="${c.fechaRegistro()}">01/01/2026</td>
+                <td class="acciones" sec:authorize="hasAnyRole('ADMIN','ADMIN_SUCURSAL')">
+                    <a class="btn pequeno" th:href="@{/clientes/{id}/editar(id=${c.id()})}">Editar</a>
+                    <form sec:authorize="hasRole('ADMIN')" th:action="@{/clientes/{id}/eliminar(id=${c.id()})}" method="post"
+                          data-confirmar="¿Eliminar este paciente? Solo es posible si no tiene ventas.">
+                        <button type="submit" class="btn pequeno peligro">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(clientes)}">
+                <td colspan="8" class="vacio">No se encontraron pacientes.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

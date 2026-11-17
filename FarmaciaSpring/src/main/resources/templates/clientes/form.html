@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Paciente · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('clientes')}"></th:block>
+
+<main class="estrecho">
+    <h1 th:text="${form.id == null} ? 'Nuevo paciente' : 'Editar paciente'">Formulario</h1>
+
+    <p class="subtitulo">El paciente es la persona a quien se le vende. Lo registra quien atiende (vendedor o regente)
+        o el administrador. Se guarda a través de la vista <code>vw_pacientes</code> y su trigger INSTEAD OF.</p>
+
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+
+    <form th:action="@{/clientes/guardar}" th:object="${form}" method="post" class="formulario">
+        <input type="hidden" th:field="*{id}">
+
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" th:field="*{nombre}" autocomplete="given-name" autofocus>
+        <span class="campo-error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+
+        <label for="apellido">Apellido</label>
+        <input type="text" id="apellido" th:field="*{apellido}" autocomplete="family-name">
+        <span class="campo-error" th:if="${#fields.hasErrors('apellido')}" th:errors="*{apellido}"></span>
+
+        <label for="documento">Documento</label>
+        <input type="text" id="documento" th:field="*{documento}" inputmode="numeric" autocomplete="off">
+        <span class="campo-error" th:if="${#fields.hasErrors('documento')}" th:errors="*{documento}"></span>
+
+        <label for="email">Correo</label>
+        <input type="email" id="email" th:field="*{email}" >
+        <span class="campo-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
+
+        <label for="telefono">Teléfono</label>
+        <input type="tel" id="telefono" th:field="*{telefono}" inputmode="tel" autocomplete="tel" maxlength="20"
+               placeholder="Ej.: 3001234567">
+
+        <label for="direccion">Dirección</label>
+        <input type="text" id="direccion" th:field="*{direccion}" >
+        <span class="campo-error" th:if="${#fields.hasErrors('direccion')}" th:errors="*{direccion}"></span>
+
+        <div class="botones">
+            <button type="submit" class="btn principal">Guardar</button>
+            <a class="btn secundario" sec:authorize="hasAnyRole('ADMIN','ADMIN_SUCURSAL')" th:href="@{/clientes}">Cancelar</a>
+            <a class="btn secundario" sec:authorize="!hasAnyRole('ADMIN','ADMIN_SUCURSAL')" th:href="@{/ventas/nuevo}">Volver a la venta</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
