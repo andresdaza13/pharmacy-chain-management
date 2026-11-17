@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  APP DE ESCRITORIO (JavaFX) para la Farmacia.
+  Es una ventana nativa de Java que muestra la interfaz del servidor Spring Boot dentro de un WebView.
+  - Modo NUBE:  se conecta al servidor desplegado (la misma URL que usas en el celular).
+  - Modo LOCAL: arranca el farmacia.jar en tu PC y se conecta a http://localhost:8080.
+  Un solo código de interfaz (Thymeleaf) para celular, web y escritorio.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.farmacia</groupId>
+    <artifactId>farmacia-escritorio</artifactId>
+    <version>1.0.0</version>
+    <name>Farmacia (escritorio)</name>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javafx.version>21.0.5</javafx.version>
+        <main.class>com.farmacia.escritorio.Lanzador</main.class>
+    </properties>
+
+    <dependencies>
+        <!-- Maven elige solo los binarios de tu sistema (Windows, macOS o Linux) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>farmacia-escritorio</finalName>
+        <plugins>
+            <!-- mvn javafx:run  -> ejecuta la app desde NetBeans o la terminal -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>com.farmacia.escritorio.AppEscritorio</mainClass>
+                </configuration>
+            </plugin>
+            <!-- mvn package -> un solo .jar con JavaFX adentro (lo usa jpackage para crear el .exe) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>${main.class}</mainClass>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
