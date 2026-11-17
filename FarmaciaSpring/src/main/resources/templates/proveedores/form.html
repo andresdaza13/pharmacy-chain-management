@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Proveedor · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('proveedores')}"></th:block>
+
+<main class="estrecho">
+    <h1 th:text="${form.id == null} ? 'Nuevo proveedor' : 'Editar proveedor'">Formulario</h1>
+
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+
+    <form th:action="@{/proveedores/guardar}" th:object="${form}" method="post" class="formulario">
+        <input type="hidden" th:field="*{id}">
+
+        <label for="nit">NIT</label>
+        <input type="text" id="nit" th:field="*{nit}" maxlength="30">
+        <span class="campo-error" th:if="${#fields.hasErrors('nit')}" th:errors="*{nit}"></span>
+
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" th:field="*{nombre}" maxlength="150">
+        <span class="campo-error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+
+        <label for="direccion">Dirección</label>
+        <input type="text" id="direccion" th:field="*{direccion}" >
+        <span class="campo-error" th:if="${#fields.hasErrors('direccion')}" th:errors="*{direccion}"></span>
+
+
+        <div class="botones">
+            <button type="submit" class="btn principal">Guardar</button>
+            <a class="btn secundario" th:href="@{/proveedores}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
