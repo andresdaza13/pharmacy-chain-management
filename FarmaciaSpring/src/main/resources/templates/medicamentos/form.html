@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Medicamento · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('medicamentos')}"></th:block>
+
+<main class="estrecho">
+    <h1 th:text="${form.id == null} ? 'Nuevo medicamento' : 'Editar medicamento'">Medicamento</h1>
+
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+
+    <form th:action="@{/medicamentos/guardar}" th:object="${form}" method="post" class="formulario">
+        <input type="hidden" th:field="*{id}">
+
+        <label for="nombre">Nombre comercial</label>
+        <input type="text" id="nombre" th:field="*{nombre}" maxlength="150">
+        <span class="campo-error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+
+        <label for="nombreGenerico">Nombre genérico</label>
+        <input type="text" id="nombreGenerico" th:field="*{nombreGenerico}" maxlength="150">
+        <span class="campo-error" th:if="${#fields.hasErrors('nombreGenerico')}" th:errors="*{nombreGenerico}"></span>
+
+        <label for="presentacion">Presentación</label>
+        <input type="text" id="presentacion" th:field="*{presentacion}" maxlength="100"
+               placeholder="Ej.: Tabletas 500 mg x 10">
+        <span class="campo-error" th:if="${#fields.hasErrors('presentacion')}" th:errors="*{presentacion}"></span>
+
+        <label for="idCategoria">Categoría</label>
+        <select id="idCategoria" th:field="*{idCategoria}">
+            <option value="">-- Selecciona --</option>
+            <option th:each="c : ${categorias}" th:value="${c.id()}" th:text="${c.descripcion()}">Categoría</option>
+        </select>
+        <span class="campo-error" th:if="${#fields.hasErrors('idCategoria')}" th:errors="*{idCategoria}"></span>
+
+        <label for="precio">Precio unitario</label>
+        <input type="number" id="precio" th:field="*{precio}" step="0.01" min="0">
+        <span class="campo-error" th:if="${#fields.hasErrors('precio')}" th:errors="*{precio}"></span>
+
+        <label class="check">
+            <input type="checkbox" th:field="*{requiereReceta}"> Requiere receta
+        </label>
+
+        <div class="botones">
+            <button type="submit" class="btn principal">Guardar</button>
+            <a class="btn secundario" th:href="@{/medicamentos}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
