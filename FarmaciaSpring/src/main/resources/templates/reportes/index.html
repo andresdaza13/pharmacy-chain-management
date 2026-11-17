@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Reportes · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('reportes')}"></th:block>
+
+<main>
+    <div class="encabezado">
+        <div>
+            <h1>Estadísticas y reportes</h1>
+            <p class="subtitulo">Los datos salen de Oracle: vistas <code>vw_rep_*</code> y el paquete <code>pkg_reportes</code>.</p>
+        </div>
+        <button type="button" class="btn secundario" onclick="window.print()">Imprimir</button>
+    </div>
+
+    <!-- Control segmentado (pestañas) estilo iOS -->
+    <nav class="segmentado" aria-label="Tipo de reporte">
+        <a th:href="@{/reportes(tab='estadisticas')}" th:classappend="${tab == 'estadisticas'} ? 'activo'">Estadísticas</a>
+        <a th:href="@{/reportes(tab='ventas')}" th:classappend="${tab == 'ventas'} ? 'activo'">Ventas</a>
+        <a th:href="@{/reportes(tab='mas-vendidos')}" th:classappend="${tab == 'mas-vendidos'} ? 'activo'">Más vendidos</a>
+        <a th:href="@{/reportes(tab='lotes')}" th:classappend="${tab == 'lotes'} ? 'activo'">Vencimientos</a>
+        <a th:href="@{/reportes(tab='receta')}" th:classappend="${tab == 'receta'} ? 'activo'">Con receta</a>
+        <a th:href="@{/reportes(tab='proveedores')}" th:classappend="${tab == 'proveedores'} ? 'activo'">Proveedores</a>
+    </nav>
+
+    <div th:if="${error}" class="alerta error" role="alert" th:text="${error}"></div>
+
+    <!-- ===== ESTADÍSTICAS con gráficas (Chart.js) ===== -->
+    <th:block th:if="${tab == 'estadisticas'}">
+        <form class="filtros" method="get" th:action="@{/reportes}">
+            <input type="hidden" name="tab" value="estadisticas">
+            <label>Desde <input type="date" name="desde" th:value="${desde}"></label>
+            <label>Hasta <input type="date" name="hasta" th:value="${hasta}"></label>
+            <button class="btn" type="submit">Aplicar</button>
+        </form>
+
+        <section class="tarjetas" th:if="${kpi != null}" aria-label="Indicadores del periodo">
+            <article class="tarjeta destacada">
+                <span>Total vendido</span>
+                <strong th:text="'$ ' + ${#numbers.formatDecimal(kpi.totalVendido(), 1, 'POINT', 0, 'COMMA')}">$ 0</strong>
+                <small>en el periodo</small>
+            </article>
+            <article class="tarjeta"><span>Ventas</span><strong th:text="${kpi.numVentas()}">0</strong><small>activas en el periodo</small></article>
+            <article class="tarjeta"><span>Ticket promedio</span>
+                <strong th:text="'$ ' + ${#numbers.formatDecimal(kpi.ticketPromedio(), 1, 'POINT', 0, 'COMMA')}">$ 0</strong><small>por venta</small></article>
+            <article class="tarjeta"><span>Unidades</span><strong th:text="${kpi.unidades()}">0</strong><small>dispensadas</small></article>
+            <article class="tarjeta"><span>Pacientes</span><strong th:text="${kpi.pacientesAtendidos()}">0</strong><small>atendidos</small></article>
+        </section>
+
+        <section class="rejilla-graficas">
+            <figure class="grafica ancha"><figcaption>Ventas por día</figcaption><div class="lienzo"><canvas id="gDia" aria-label="Ventas por día" role="img"></canvas></div></figure>
+            <figure class="grafica"><figcaption>Por sucursal <small>(colección PIPELINED)</small></figcaption><div class="lienzo"><canvas id="gSucursal" role="img" aria-label="Ventas por sucursal"></canvas></div></figure>
+            <figure class="grafica"><figcaption>Método de pago</figcaption><div class="lienzo"><canvas id="gMetodo" role="img" aria-label="Ventas por método de pago"></canvas></div></figure>
+            <figure class="grafica"><figcaption>Medicamentos más vendidos (unidades)</figcaption><div class="lienzo"><canvas id="gTop" role="img" aria-label="Top medicamentos"></canvas></div></figure>
+            <figure class="grafica"><figcaption>Inventario por estado <small>(fn_estado_lote)</small></figcaption><div class="lienzo"><canvas id="gEstado" role="img" aria-label="Lotes por estado"></canvas></div></figure>
+        </section>
+    </th:block>
+
+    <!-- R1. Ventas por sucursal / empleado / día en un rango -->
+    <th:block th:if="${tab == 'ventas'}">
+        <form class="filtros" method="get" th:action="@{/reportes}">
+            <input type="hidden" name="tab" value="ventas">
+            <label>Agrupar por
+                <select name="por">
+                    <option value="sucursal" th:selected="${por == 'sucursal'}">Sucursal</option>
+                    <option value="empleado" th:selected="${por == 'empleado'}">Empleado</option>
+                    <option value="dia" th:selected="${por == 'dia'}">Día</option>
+                </select>
+            </label>
+            <label>Desde <input type="date" name="desde" th:value="${desde}"></label>
+            <label>Hasta <input type="date" name="hasta" th:value="${hasta}"></label>
+            <button class="btn" type="submit">Aplicar</button>
+        </form>
+        <div class="tabla-contenedor">
+            <table>
+                <thead><tr><th>Grupo</th><th class="num">Ventas</th><th class="num">Total</th><th class="barra-col"></th></tr></thead>
+                <tbody>
+                <tr th:each="f : ${filas}">
+                    <td th:text="${f.grupo()}">Sucursal</td>
+                    <td class="num" th:text="${f.cantidad()}">0</td>
+                    <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(f.total(), 1, 'POINT', 0, 'COMMA')}">$ 0</td>
+                    <td class="barra-col"><span class="barra"
+                        th:style="'width:' + ${f.porcentaje(maximo)} + '%'"></span></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(filas)}"><td colspan="4" class="vacio">No hay ventas en ese rango.</td></tr>
+                </tbody>
+                <tfoot th:if="${!#lists.isEmpty(filas)}">
+                <tr><td colspan="2"><strong>Total del periodo</strong></td>
+                    <td class="num"><strong th:text="'$ ' + ${#numbers.formatDecimal(granTotal, 1, 'POINT', 0, 'COMMA')}">$ 0</strong></td><td></td></tr>
+                </tfoot>
+            </table>
+        </div>
+    </th:block>
+
+    <!-- R2. Top 5 por sucursal -->
+    <div class="tabla-contenedor" th:if="${tab == 'mas-vendidos'}">
+        <table>
+            <thead><tr><th>Sucursal</th><th class="num">#</th><th>Medicamento</th><th class="num">Unidades</th><th class="num">Ingresos</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${filas}">
+                <td th:text="${f.sucursal()}"></td><td class="num" th:text="${f.puesto()}"></td>
+                <td th:text="${f.medicamento()}"></td><td class="num" th:text="${f.unidades()}"></td>
+                <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(f.ingresos(), 1, 'POINT', 0, 'COMMA')}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(filas)}"><td colspan="5" class="vacio">Aún no hay ventas.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- R3. Lotes vencidos o próximos a vencer -->
+    <div class="tabla-contenedor" th:if="${tab == 'lotes'}">
+        <table>
+            <thead><tr><th>Sucursal</th><th>Lote</th><th>Medicamento</th><th class="num">Unidades</th><th>Vence</th><th class="num">Días</th><th>Estado</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${filas}">
+                <td th:text="${f.sucursal()}"></td><td th:text="${f.idLote()}"></td><td th:text="${f.medicamento()}"></td>
+                <td class="num" th:text="${f.cantidad()}"></td>
+                <td th:text="${#temporals.format(f.vencimiento(), 'dd/MM/yyyy')}"></td>
+                <td class="num" th:text="${f.dias()}"></td>
+                <td><span th:class="${f.vencido()} ? 'etiqueta vencido' : 'etiqueta por-vencer'"
+                          th:text="${f.vencido()} ? 'Vencido' : 'Próximo a vencer'"></span></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(filas)}"><td colspan="7" class="vacio">Ningún lote vencido ni por vencer. ¡Bien!</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- R4. Ventas con receta -->
+    <div class="tabla-contenedor" th:if="${tab == 'receta'}">
+        <table>
+            <thead><tr><th>Venta</th><th>Fecha</th><th>Sucursal</th><th>Cliente</th><th>Médico</th><th>Registro</th><th>Medicamentos</th><th class="num">Total</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${filas}">
+                <td><a th:href="@{/ventas/{id}(id=${f.idVenta()})}" th:text="${f.idVenta()}"></a></td>
+                <td th:text="${f.fecha()}"></td><td th:text="${f.sucursal()}"></td><td th:text="${f.cliente()}"></td>
+                <td th:text="${f.medico()}"></td><td th:text="${f.registro()}"></td><td th:text="${f.medicamentos()}"></td>
+                <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(f.total(), 1, 'POINT', 0, 'COMMA')}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(filas)}"><td colspan="8" class="vacio">No hay ventas con receta.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- R5. Lotes por proveedor y empleado responsable -->
+    <div class="tabla-contenedor" th:if="${tab == 'proveedores'}">
+        <table>
+            <thead><tr><th>Proveedor</th><th>NIT</th><th>Lote</th><th>Medicamento</th><th>Sucursal</th><th>Validó</th><th>Vence</th><th class="num">Inicial</th><th class="num">Actual</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${filas}">
+                <td th:text="${f.proveedor()}"></td><td th:text="${f.nit()}"></td><td th:text="${f.idLote()}"></td>
+                <td th:text="${f.medicamento()}"></td><td th:text="${f.sucursal()}"></td>
+                <td th:text="${f.empleado()} + ' (' + ${f.cargo()} + ')'"></td>
+                <td th:text="${#temporals.format(f.vencimiento(), 'dd/MM/yyyy')}"></td>
+                <td class="num" th:text="${f.inicial()}"></td><td class="num" th:text="${f.actual()}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(filas)}"><td colspan="9" class="vacio">No hay lotes registrados.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<th:block th:if="${tab == 'estadisticas'}">
+<script th:src="@{/js/chart.umd.min.js}"></script>
+<script th:inline="javascript">
+(function () {
+    /* Datos que el controlador puso en el modelo; Thymeleaf los escribe como JSON */
+    const datos = /*[[${graficas}]]*/ {};
+    if (!window.Chart || !datos) return;
+
+    // Colores del sistema de Apple (claro / oscuro)
+    const oscuro = matchMedia('(prefers-color-scheme: dark)').matches;
+    const C = oscuro
+        ? ['#0a84ff', '#30d158', '#ff9f0a', '#ff453a', '#bf5af2', '#64d2ff', '#ffd60a']
+        : ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#5ac8fa', '#ffcc00'];
+    const texto = oscuro ? '#98989d' : '#6e6e73';
+    const rejilla = oscuro ? 'rgba(84,84,88,.35)' : 'rgba(60,60,67,.10)';
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.color = texto;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    const pesos = v => '$ ' + Number(v).toLocaleString('es-CO');
+    const ejes = (fmt) => ({
+        x: { grid: { display: false } },
+        y: { grid: { color: rejilla }, border: { display: false }, ticks: { callback: fmt } }
+    });
+    const etiquetas = s => (s || []).map(p => p.etiqueta);
+    const valores = (s, campo) => (s || []).map(p => Number(p[campo] || 0));
+    const vacio = (id, s) => {
+        if (s && s.length) return false;
+        const c = document.getElementById(id);
+        c.parentElement.innerHTML = '<p class="vacio-grafica">Sin datos en este periodo</p>';
+        return true;
+    };
+
+    if (!vacio('gDia', datos.porDia)) new Chart(document.getElementById('gDia'), {
+        type: 'line',
+        data: { labels: etiquetas(datos.porDia), datasets: [{
+            label: 'Total vendido', data: valores(datos.porDia, 'valor'), borderColor: C[0], tension: .35,
+            fill: true, backgroundColor: C[0] + '22', pointRadius: 3 }] },
+        options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => pesos(c.raw) } } },
+                   scales: ejes(pesos), maintainAspectRatio: false }
+    });
+
+    if (!vacio('gSucursal', datos.porSucursal)) new Chart(document.getElementById('gSucursal'), {
+        type: 'bar',
+        data: { labels: etiquetas(datos.porSucursal), datasets: [{
+            label: 'Total', data: valores(datos.porSucursal, 'valor'), backgroundColor: C[1], borderRadius: 8 }] },
+        options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => pesos(c.raw) } } },
+                   scales: ejes(pesos), maintainAspectRatio: false }
+    });
+
+    if (!vacio('gMetodo', datos.porMetodo)) new Chart(document.getElementById('gMetodo'), {
+        type: 'doughnut',
+        data: { labels: etiquetas(datos.porMetodo), datasets: [{
+            data: valores(datos.porMetodo, 'valor'), backgroundColor: C, borderWidth: 0 }] },
+        options: { cutout: '68%', plugins: { legend: { position: 'bottom' },
+                   tooltip: { callbacks: { label: c => c.label + ': ' + pesos(c.raw) } } }, maintainAspectRatio: false }
+    });
+
+    if (!vacio('gTop', datos.topMedicamentos)) new Chart(document.getElementById('gTop'), {
+        type: 'bar',
+        data: { labels: etiquetas(datos.topMedicamentos), datasets: [{
+            label: 'Unidades', data: valores(datos.topMedicamentos, 'valor'), backgroundColor: C[4], borderRadius: 8 }] },
+        options: { indexAxis: 'y', plugins: { legend: { display: false } },
+                   scales: { x: { grid: { color: rejilla }, border: { display: false } }, y: { grid: { display: false } } },
+                   maintainAspectRatio: false }
+    });
+
+    const nombres = { VIGENTE: 'Vigente', PROXIMO_A_VENCER: 'Próximo a vencer', VENCIDO: 'Vencido' };
+    const colorEstado = { VIGENTE: C[1], PROXIMO_A_VENCER: C[2], VENCIDO: C[3] };
+    if (!vacio('gEstado', datos.lotesPorEstado)) new Chart(document.getElementById('gEstado'), {
+        type: 'doughnut',
+        data: { labels: datos.lotesPorEstado.map(p => nombres[p.etiqueta] || p.etiqueta), datasets: [{
+            data: valores(datos.lotesPorEstado, 'valor2'),
+            backgroundColor: datos.lotesPorEstado.map(p => colorEstado[p.etiqueta] || C[5]), borderWidth: 0 }] },
+        options: { cutout: '68%', plugins: { legend: { position: 'bottom' },
+                   tooltip: { callbacks: { label: c => c.label + ': ' + c.raw + ' unidades' } } }, maintainAspectRatio: false }
+    });
+})();
+</script>
+</th:block>
+</body>
+</html>
