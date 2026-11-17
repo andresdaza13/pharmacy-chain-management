@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<!--
+  MENÚ DE LA APLICACIÓN (fragmento reutilizable).
+  - Escritorio (>= 900 px): barra lateral translúcida, estilo macOS.
+  - Móvil: barra de pestañas abajo (estilo iOS) + el menú completo se abre como "hoja" con el botón «Más».
+  Cada enlace se muestra solo si el ROL del usuario puede usarlo (sec:authorize).
+-->
+<th:block th:fragment="nav(activo)">
+<header class="lateral" id="menu">
+    <a class="marca" th:href="@{/}">
+        <span class="capsula" aria-hidden="true"></span>
+        <span>Farmacia</span>
+    </a>
+
+    <nav aria-label="Secciones">
+        <a th:href="@{/}" th:classappend="${activo == 'inicio'} ? 'activo'">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+            Inicio
+        </a>
+        <a sec:authorize="hasAnyRole('ADMIN','REGENTE','VENDEDOR')" th:href="@{/ventas/nuevo}"
+           th:classappend="${activo == 'nueva-venta'} ? 'activo'">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 10.2a1 1 0 0 0 1 .8h8.2a1 1 0 0 0 1-.8L19 7H6"/><circle cx="9" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/></svg>
+            Nueva venta
+        </a>
+        <a sec:authorize="hasAnyRole('ADMIN','GERENCIA','ADMIN_SUCURSAL','AUDITOR')" th:href="@{/ventas}"
+           th:classappend="${activo == 'ventas'} ? 'activo'">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+            Ventas
+        </a>
+        <a sec:authorize="hasAnyRole('ADMIN','GERENCIA','ADMIN_SUCURSAL','AUDITOR')" th:href="@{/clientes}"
+           th:classappend="${activo == 'clientes'} ? 'activo'">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.5a3 3 0 0 1 0 5.5M18 14.5c1.9.8 3 2.7 3 5.5"/></svg>
+            Pacientes
+        </a>
+
+        <span class="grupo">Inventario</span>
+        <a th:href="@{/medicamentos}" th:classappend="${activo == 'medicamentos'} ? 'activo'">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-40 12 12)"/><path d="M9.3 8.1l5.6 7.8"/></svg>
+            Medicamentos
+        </a>
+        <a th:href="@{/lotes}" th:classappend="${activo == 'lotes'} ? 'activo'">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5-9 5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>
+            Lotes
+        </a>
+        <a sec:authorize="hasAnyRole('ADMIN','GERENCIA','ADMIN_SUCURSAL','AUDITOR')" th:href="@{/proveedores}"
+           th:classappend="${activo == 'proveedores'} ? 'activo'">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6h11v10H2zM13 9h4l3 3v4h-7"/><circle cx="6" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>
+            Proveedores
+        </a>
+
+        <th:block sec:authorize="hasAnyRole('ADMIN','GERENCIA','ADMIN_SUCURSAL','AUDITOR','REGENTE')">
+            <span class="grupo">Gestión</span>
+            <a sec:authorize="hasAnyRole('ADMIN','GERENCIA','ADMIN_SUCURSAL','AUDITOR')" th:href="@{/empleados}"
+               th:classappend="${activo == 'empleados'} ? 'activo'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="2.5"/><path d="M8 17c.6-2 2.2-3 4-3s3.4 1 4 3"/></svg>
+                Empleados
+            </a>
+            <a sec:authorize="hasAnyRole('ADMIN','GERENCIA','ADMIN_SUCURSAL','AUDITOR')" th:href="@{/sucursales}"
+               th:classappend="${activo == 'sucursales'} ? 'activo'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+                Sucursales
+            </a>
+            <a th:href="@{/reportes}" th:classappend="${activo == 'reportes'} ? 'activo'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+                Estadísticas
+            </a>
+        </th:block>
+    </nav>
+
+    <div class="usuario">
+        <span class="avatar" th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">U</span>
+        <div class="usuario-datos">
+            <strong sec:authentication="name">usuario</strong>
+            <small th:text="${#authentication.principal.rolVisible()}">Rol</small>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="salir" title="Cerrar sesión">Salir</button>
+        </form>
+    </div>
+</header>
+
+<!-- Barra de pestañas (solo móvil) -->
+<nav class="tabbar" aria-label="Accesos rápidos">
+    <a th:href="@{/}" th:classappend="${activo == 'inicio'} ? 'activo'">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Inicio</span>
+    </a>
+    <a sec:authorize="hasAnyRole('ADMIN','REGENTE','VENDEDOR')" th:href="@{/ventas/nuevo}"
+       th:classappend="${activo == 'nueva-venta'} ? 'activo'">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Vender</span>
+    </a>
+    <a th:href="@{/lotes}" th:classappend="${activo == 'lotes'} ? 'activo'">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5-9 5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg><span>Lotes</span>
+    </a>
+    <a sec:authorize="hasAnyRole('ADMIN','GERENCIA','ADMIN_SUCURSAL','AUDITOR','REGENTE')" th:href="@{/reportes}"
+       th:classappend="${activo == 'reportes'} ? 'activo'">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Reportes</span>
+    </a>
+    <button type="button" id="abrirMenu" aria-controls="menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>Más</span>
+    </button>
+</nav>
+<div class="velo" id="velo" hidden></div>
+</th:block>
+</body>
+</html>
