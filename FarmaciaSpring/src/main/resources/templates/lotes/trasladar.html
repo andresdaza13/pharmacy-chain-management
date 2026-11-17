@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Trasladar lote · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('lotes')}"></th:block>
+
+<main class="estrecho">
+    <h1>Trasladar stock</h1>
+    <p class="subtitulo">Mueve unidades de este lote a otra sucursal. Oracle lo hace en una <strong>transacción explícita</strong>
+        (<code>pkg_traslados.trasladar_stock</code>): resta en el origen y crea el lote en el destino; si algo falla,
+        <code>ROLLBACK TO SAVEPOINT</code> deshace ambas cosas.</p>
+
+    <div th:if="${error}" class="alerta error" role="alert" th:text="${error}"></div>
+
+    <div class="resumen">
+        <p><strong th:text="${lote.medicamento()}">Medicamento</strong> · lote <span th:text="${lote.idLote()}">1</span></p>
+        <p><span th:text="${lote.sucursal()}">Sucursal</span> · vence <span th:text="${lote.vencimiento()}">01/01/2027</span>
+           · <span th:class="'etiqueta ' + ${lote.clase()}" th:text="${lote.etiqueta()}">Vigente</span></p>
+        <p>Disponibles: <strong th:text="${lote.cantidadActual()}">0</strong> unidades</p>
+    </div>
+
+    <form th:action="@{/lotes/{id}/trasladar(id=${lote.idLote()})}" method="post" class="formulario" style="margin-top:16px"
+          data-confirmar="¿Confirmas el traslado? Las unidades saldrán de esta sucursal.">
+        <label for="idSucursalDestino">Sucursal de destino</label>
+        <select id="idSucursalDestino" name="idSucursalDestino" required>
+            <option value="">-- Selecciona --</option>
+            <option th:each="s : ${sucursales}" th:value="${s.id()}" th:text="${s.texto()}"
+                    th:disabled="${s.texto() == lote.sucursal()}">Sucursal</option>
+        </select>
+
+        <label for="cantidad">Cantidad</label>
+        <input type="number" id="cantidad" name="cantidad" min="1" th:max="${lote.cantidadActual()}" inputmode="numeric" required>
+
+        <label for="idEmpleado">Recibe (empleado de la sucursal de destino)</label>
+        <select id="idEmpleado" name="idEmpleado" required>
+            <option value="">-- Selecciona --</option>
+            <option th:each="e : ${empleados}" th:value="${e.id()}" th:text="${e.texto()}">Empleado</option>
+        </select>
+
+        <div class="botones">
+            <button type="submit" class="btn principal">Trasladar</button>
+            <a class="btn secundario" th:href="@{/lotes}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

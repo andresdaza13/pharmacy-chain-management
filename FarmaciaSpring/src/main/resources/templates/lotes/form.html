@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Lote · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('lotes')}"></th:block>
+
+<main class="estrecho">
+    <h1 th:text="${form.id == null} ? 'Nuevo lote' : 'Editar lote'">Formulario</h1>
+
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+
+    <form th:action="@{/lotes/guardar}" th:object="${form}" method="post" class="formulario">
+        <input type="hidden" th:field="*{id}">
+
+        <div th:if="${form.id == null}">
+            <label for="idMedicamento">Medicamento</label>
+            <select id="idMedicamento" th:field="*{idMedicamento}">
+                <option value="">-- Selecciona --</option>
+                <option th:each="o : ${medicamentos}" th:value="${o.id()}" th:text="${o.texto()}">Opción</option>
+            </select>
+
+            <label for="idProveedor">Proveedor</label>
+            <select id="idProveedor" th:field="*{idProveedor}">
+                <option value="">-- Selecciona --</option>
+                <option th:each="o : ${proveedores}" th:value="${o.id()}" th:text="${o.texto()}">Opción</option>
+            </select>
+
+            <!-- Empleado ligado: se registra a su nombre y en su sucursal -->
+            <div th:if="${fijo}">
+                <label>Registra</label>
+                <input type="text" th:value="${empleadoFijo}" disabled>
+                <input type="hidden" th:field="*{idEmpleado}">
+                <input type="hidden" th:field="*{idSucursal}">
+            </div>
+            <!-- Usuario no ligado (p. ej. administrador): elige sucursal y empleado -->
+            <div th:unless="${fijo}">
+                <label for="idSucursal">Sucursal</label>
+                <select id="idSucursal" th:field="*{idSucursal}">
+                    <option value="">-- Selecciona --</option>
+                    <option th:each="o : ${sucursales}" th:value="${o.id()}" th:text="${o.texto()}">Opción</option>
+                </select>
+
+                <label for="idEmpleado">Empleado que registra</label>
+                <select id="idEmpleado" th:field="*{idEmpleado}">
+                    <option value="">-- Selecciona --</option>
+                    <option th:each="o : ${empleados}" th:value="${o.id()}" th:text="${o.texto()}">Opción</option>
+                </select>
+            </div>
+        </div>
+
+        <label for="fechaFabricacion">Fecha de fabricación</label>
+        <input type="date" id="fechaFabricacion" th:field="*{fechaFabricacion}" >
+        <span class="campo-error" th:if="${#fields.hasErrors('fechaFabricacion')}" th:errors="*{fechaFabricacion}"></span>
+
+        <label for="fechaVencimiento">Fecha de vencimiento</label>
+        <input type="date" id="fechaVencimiento" th:field="*{fechaVencimiento}" >
+        <span class="campo-error" th:if="${#fields.hasErrors('fechaVencimiento')}" th:errors="*{fechaVencimiento}"></span>
+
+        <label for="cantidad" th:text="${form.id == null} ? 'Cantidad inicial' : 'Cantidad actual'">Cantidad</label>
+        <input type="number" id="cantidad" th:field="*{cantidad}" min="0">
+        <span class="campo-error" th:if="${#fields.hasErrors('cantidad')}" th:errors="*{cantidad}"></span>
+
+        <div class="botones">
+            <button type="submit" class="btn principal">Guardar</button>
+            <a class="btn secundario" th:href="@{/lotes}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
