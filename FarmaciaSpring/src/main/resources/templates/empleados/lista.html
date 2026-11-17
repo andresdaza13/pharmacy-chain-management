@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Empleados · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('empleados')}"></th:block>
+
+<main>
+    <div class="encabezado"><div><h1>Empleados</h1><p class="subtitulo">Personal de cada sucursal.</p></div></div>
+
+    <div th:if="${ok}" class="alerta ok" th:text="${ok}"></div>
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+
+    <div class="herramientas">
+        <form th:action="@{/empleados}" method="get" class="buscador">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar">
+            <button type="submit" class="btn">Buscar</button>
+            <a class="btn secundario" th:href="@{/empleados}">Ver todos</a>
+        </form>
+        <a class="btn principal" sec:authorize="hasAnyRole('ADMIN','ADMIN_SUCURSAL')" th:href="@{/empleados/nuevo}">+ Nuevo empleado</a>
+    </div>
+
+    <div class="tabla-contenedor">
+        <table>
+            <thead>
+            <tr><th>ID</th><th>Nombre</th><th>Documento</th><th>Correo</th><th>Cargo</th><th class="num">Salario</th><th>Sucursal</th><th sec:authorize="hasAnyRole('ADMIN','ADMIN_SUCURSAL')">Acciones</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="e : ${empleados}">
+                <td th:text="${e.id()}">1</td>
+                <td th:text="${e.nombre() + ' ' + e.apellido()}">Nombre</td>
+                <td th:text="${e.documento()}">Doc</td>
+                <td th:text="${e.email()}">Correo</td>
+                <td th:text="${e.cargo()}">Cargo</td>
+                <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(e.salario(), 1, 'POINT', 0, 'COMMA')}">$ 0</td>
+                <td th:text="${e.sucursal()}">Sucursal</td>
+                <td class="acciones" sec:authorize="hasAnyRole('ADMIN','ADMIN_SUCURSAL')">
+                    <a class="btn pequeno" th:href="@{/empleados/{id}/editar(id=${e.id()})}">Editar</a>
+                    <form sec:authorize="hasRole('ADMIN')" th:action="@{/empleados/{id}/eliminar(id=${e.id()})}" method="post"
+                          data-confirmar="¿Eliminar este empleado?">
+                        <button type="submit" class="btn pequeno peligro">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(empleados)}">
+                <td colspan="8" class="vacio">No se encontraron empleados.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
