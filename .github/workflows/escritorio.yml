@@ -1,0 +1,59 @@
+# Crea la app de escritorio con su propio Java incluido (no hay que instalar nada en el PC).
+# Se ejecuta a mano (Actions > Escritorio > Run workflow) o al crear una etiqueta v1.0.0.
+name: Escritorio (JavaFX + jpackage)
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  empaquetar:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Compilar backend (para el modo LOCAL)
+        run: mvn -B -f FarmaciaSpring/pom.xml package -DskipTests
+
+      - name: Compilar app de escritorio
+        run: mvn -B -f FarmaciaEscritorio/pom.xml package
+
+      - name: Crear la aplicación con jpackage
+        shell: bash
+        run: |
+          mkdir -p entrada && cp FarmaciaEscritorio/target/farmacia-escritorio.jar entrada/
+          jpackage --type app-image --name Farmacia --app-version 1.0.0 \
+                   --input entrada --main-jar farmacia-escritorio.jar \
+                   --main-class com.farmacia.escritorio.Lanzador \
+                   --dest dist
+          # El servidor va junto a la app para el modo LOCAL
+          cp FarmaciaSpring/target/farmacia-1.0.0.jar dist/farmacia.jar
+
+      - name: Comprimir
+        shell: bash
+        run: |
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then 7z a ../Farmacia-${{ runner.os }}.zip . ; else zip -qr ../Farmacia-${{ runner.os }}.zip . ; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Farmacia-${{ runner.os }}
+          path: Farmacia-${{ runner.os }}.zip
+
+      - name: Publicar en Releases (solo con etiqueta v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Farmacia-${{ runner.os }}.zip
