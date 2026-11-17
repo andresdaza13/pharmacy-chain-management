@@ -1,0 +1,25 @@
+# Compila el backend en cada push y deja el farmacia.jar descargable en la pestaña "Actions".
+name: Backend (Spring Boot)
+
+on:
+  push:
+    paths: ["FarmaciaSpring/**", ".github/workflows/backend.yml"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Compilar y empaquetar
+        run: mvn -B -f FarmaciaSpring/pom.xml package -DskipTests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: farmacia-servidor
+          path: FarmaciaSpring/target/farmacia-1.0.0.jar
