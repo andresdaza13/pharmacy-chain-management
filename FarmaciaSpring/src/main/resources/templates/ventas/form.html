@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Nueva venta · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('nueva-venta')}"></th:block>
+
+<main class="ancho-medio">
+    <div class="encabezado">
+        <div>
+            <h1>Nueva venta</h1>
+            <p class="subtitulo">Elige el cliente y agrega lo que va a llevar. Oracle toma primero los lotes que vencen antes.</p>
+        </div>
+    </div>
+
+    <div th:if="${ok}" class="alerta ok" role="status" th:text="${ok}"></div>
+    <div th:if="${error}" class="alerta error" role="alert" th:text="${error}"></div>
+
+    <form th:action="@{/ventas/guardar}" th:object="${form}" method="post" class="formulario">
+
+        <label for="idCliente">Paciente</label>
+        <select id="idCliente" th:field="*{idCliente}">
+            <option value="">-- Selecciona --</option>
+            <option th:each="o : ${clientes}" th:value="${o.id()}" th:text="${o.texto()}">Cliente</option>
+        </select>
+        <a class="enlace-pequeno" th:href="@{/clientes/nuevo}">¿El paciente no está? Regístralo aquí</a>
+
+        <!-- Empleado ligado al usuario: atiende él mismo. Si no está ligado, se elige -->
+        <div th:if="${empleadoFijo != null}">
+            <label>Atiende</label>
+            <input type="text" th:value="${empleadoFijo}" disabled>
+        </div>
+        <div th:if="${empleadoFijo == null}">
+            <label for="idEmpleado">Empleado que atiende</label>
+            <select id="idEmpleado" th:field="*{idEmpleado}">
+                <option value="">-- Selecciona --</option>
+                <option th:each="o : ${empleados}" th:value="${o.id()}" th:text="${o.texto()}">Empleado</option>
+            </select>
+        </div>
+
+        <label for="metodoPago">Método de pago</label>
+        <select id="metodoPago" th:field="*{metodoPago}">
+            <option value="">-- Selecciona --</option>
+            <option th:each="m : ${metodos}" th:value="${m}" th:text="${m}">Efectivo</option>
+        </select>
+        <span class="campo-error" th:if="${#fields.hasErrors('metodoPago')}" th:errors="*{metodoPago}"></span>
+
+        <label>Medicamentos</label>
+        <table class="lineas" id="lineas">
+            <thead><tr><th>Medicamento</th><th class="num">Cantidad</th><th></th></tr></thead>
+            <tbody>
+            <tr class="linea" th:each="l, i : *{lineas}">
+                <td>
+                    <select th:field="*{lineas[__${i.index}__].idMedicamento}" class="sel-med">
+                        <option value="" data-precio="0" data-receta="N">-- Selecciona --</option>
+                        <option th:each="m : ${medicamentos}" th:value="${m.id()}" th:text="${m.etiqueta()}"
+                                th:attr="data-precio=${m.precio()},data-receta=${m.requiereReceta()} ? 'S' : 'N'">Med</option>
+                    </select>
+                </td>
+                <td><input type="number" min="1" th:field="*{lineas[__${i.index}__].cantidad}" class="cant"></td>
+                <td><button type="button" class="btn pequeno peligro quitar">Quitar</button></td>
+            </tr>
+            </tbody>
+        </table>
+        <button type="button" class="btn pequeno" id="agregar">+ Agregar medicamento</button>
+
+        <!-- Solo aparece si algún medicamento requiere receta (lo decide el JavaScript de abajo) -->
+        <fieldset class="receta" id="recetaFila" hidden>
+            <legend><span class="etiqueta rx">Rx</span> Datos de la receta médica</legend>
+            <p class="ayuda">Hay medicamentos que requieren receta. Solo un regente farmacéutico puede autorizar esta venta.</p>
+            <div class="dos-columnas">
+                <div>
+                    <label for="nombreMedico">Nombre del médico</label>
+                    <input type="text" id="nombreMedico" th:field="*{nombreMedico}" maxlength="120">
+                </div>
+                <div>
+                    <label for="registroMedico">Registro médico</label>
+                    <input type="text" id="registroMedico" th:field="*{registroMedico}" maxlength="40">
+                </div>
+            </div>
+        </fieldset>
+
+        <p class="total-estimado">Total estimado: <strong id="total">$ 0</strong></p>
+
+        <div class="botones">
+            <button type="submit" class="btn principal">Registrar venta</button>
+            <a class="btn secundario" th:href="@{/}">Cancelar</a>
+        </div>
+    </form>
+</main>
+
+<script>
+(function () {
+    var cuerpo = document.querySelector('#lineas tbody');
+
+    function recalcular() {
+        var total = 0, receta = false;
+        cuerpo.querySelectorAll('.linea').forEach(function (fila) {
+            var sel = fila.querySelector('.sel-med');
+            var op = sel.options[sel.selectedIndex];
+            var cant = parseInt(fila.querySelector('.cant').value, 10) || 0;
+            if (sel.value) {
+                total += parseFloat(op.getAttribute('data-precio')) * cant;
+                if (op.getAttribute('data-receta') === 'S') receta = true;
+            }
+        });
+        document.getElementById('total').textContent = '$ ' + total.toLocaleString('es-CO');
+        document.getElementById('recetaFila').hidden = !receta;
+    }
+
+    function renumerar() {
+        cuerpo.querySelectorAll('.linea').forEach(function (fila, n) {
+            fila.querySelectorAll('select, input').forEach(function (el) {
+                if (el.name) el.name = el.name.replace(/lineas\[\d+\]/, 'lineas[' + n + ']');
+                if (el.id) el.id = el.id.replace(/lineas\d+/, 'lineas' + n);
+            });
+        });
+    }
+
+    document.getElementById('agregar').addEventListener('click', function () {
+        var copia = cuerpo.querySelector('.linea').cloneNode(true);
+        copia.querySelector('.sel-med').value = '';
+        copia.querySelector('.cant').value = '';
+        cuerpo.appendChild(copia);
+        renumerar();
+        recalcular();
+    });
+
+    cuerpo.addEventListener('click', function (ev) {
+        if (!ev.target.classList.contains('quitar')) return;
+        if (cuerpo.querySelectorAll('.linea').length > 1) {
+            ev.target.closest('.linea').remove();
+            renumerar();
+        } else {
+            var f = ev.target.closest('.linea');
+            f.querySelector('.sel-med').value = '';
+            f.querySelector('.cant').value = '';
+        }
+        recalcular();
+    });
+
+    cuerpo.addEventListener('input', recalcular);
+    cuerpo.addEventListener('change', recalcular);
+    recalcular();
+})();
+</script>
+</body>
+</html>

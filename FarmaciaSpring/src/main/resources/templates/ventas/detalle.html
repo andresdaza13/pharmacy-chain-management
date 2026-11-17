@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Venta · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('ventas')}"></th:block>
+
+<main>
+    <div class="encabezado">
+        <div>
+            <h1 th:text="${venta.codigoFactura()} ?: ('Venta n.º ' + ${venta.id()})">Venta</h1>
+            <p class="subtitulo" th:text="${venta.fecha()}">fecha</p>
+        </div>
+        <a class="btn" th:href="@{/ventas}">Volver a ventas</a>
+    </div>
+
+    <div class="formulario resumen">
+        <p><strong>Cliente:</strong> <span th:text="${venta.cliente()}"></span></p>
+        <p><strong>Atendió:</strong> <span th:text="${venta.empleado()}"></span>
+           (<span th:text="${venta.sucursal()}"></span>)</p>
+        <p><strong>Método de pago:</strong> <span th:text="${venta.metodoPago()}"></span></p>
+        <p><strong>Estado:</strong> <span th:class="${venta.anulada()} ? 'etiqueta vencido' : 'etiqueta vigente'"
+              th:text="${venta.anulada()} ? 'Anulada (el stock ya volvió a los lotes)' : 'Activa'"></span></p>
+        <p th:if="${venta.conReceta()}"><span class="etiqueta rx">Rx</span>
+           <strong>Receta:</strong> <span th:text="${venta.nombreMedico()}"></span>
+           · registro <span th:text="${venta.registroMedico()}"></span></p>
+    </div>
+
+    <div class="tabla-contenedor">
+        <table>
+            <thead>
+            <tr><th>Medicamento</th><th>Lote</th><th class="num">Cantidad</th><th class="num">Precio</th><th class="num">Subtotal</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="l : ${lineas}">
+                <td th:text="${l.medicamento()}">Med</td>
+                <td th:text="${l.idLote()}">1</td>
+                <td class="num" th:text="${l.cantidad()}">1</td>
+                <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(l.precio(), 1, 'POINT', 0, 'COMMA')}">$ 0</td>
+                <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(l.subtotal(), 1, 'POINT', 0, 'COMMA')}">$ 0</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(lineas)}">
+                <td colspan="5" class="vacio">Esta venta no tiene detalle registrado.</td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr><td colspan="4" class="num"><strong>Total</strong></td>
+                <td class="num"><strong th:text="'$ ' + ${#numbers.formatDecimal(venta.total(), 1, 'POINT', 0, 'COMMA')}">$ 0</strong></td></tr>
+            </tfoot>
+        </table>
+    </div>
+</main>
+</body>
+</html>

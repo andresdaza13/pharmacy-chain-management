@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Ventas del día · Farmacia</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+    <!-- PWA: permite "instalar" la app en el celular y en el PC -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
+    <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/nav :: nav('ventas')}"></th:block>
+
+<main>
+    <div class="encabezado">
+        <div>
+            <h1>Ventas del día</h1>
+            <p class="subtitulo" th:text="${fechaTexto}">sábado 14 de noviembre de 2026</p>
+        </div>
+        <a class="btn principal" sec:authorize="hasAnyRole('ADMIN','REGENTE','VENDEDOR')" th:href="@{/ventas/nuevo}">Nueva venta</a>
+    </div>
+
+    <div th:if="${ok}" class="alerta ok" role="status" th:text="${ok}"></div>
+    <div th:if="${error}" class="alerta error" role="alert" th:text="${error}"></div>
+
+    <section class="resumen-dia">
+        <div class="cifra-total">
+            <span>Total vendido</span>
+            <strong th:text="'$ ' + ${#numbers.formatDecimal(totalVendido, 1, 'POINT', 0, 'COMMA')}">$ 0</strong>
+        </div>
+        <div class="cifra">
+            <span>Ventas</span>
+            <strong th:text="${cantidad}">0</strong>
+        </div>
+        <form th:action="@{/ventas}" method="get" class="filtro-fecha">
+            <label for="fecha">Ver otro día</label>
+            <div class="fila">
+                <input type="date" id="fecha" name="fecha" th:value="${fecha}">
+                <button type="submit" class="btn">Ver</button>
+            </div>
+            <div class="atajos">
+                <a th:href="@{/ventas}">Hoy</a>
+                <a th:href="@{/ventas(todas=true)}">Todas las fechas</a>
+            </div>
+        </form>
+    </section>
+
+    <div class="tabla-contenedor">
+        <table>
+            <thead>
+            <tr><th>Factura</th><th>Hora</th><th>Cliente</th><th>Atendió</th><th>Sucursal</th><th>Pago</th><th>Estado</th><th class="num">Total</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="v : ${ventas}" th:classappend="${v.anulada()} ? 'anulada'">
+                <td><strong th:text="${v.codigoFactura()} ?: ${v.id()}">FV-2026-000001</strong></td>
+                <td th:text="${v.fecha()}">01/01/2026</td>
+                <td th:text="${v.cliente()}">Cliente</td>
+                <td th:text="${v.empleado()}">Empleado</td>
+                <td th:text="${v.sucursal()}">Sucursal</td>
+                <td th:text="${v.metodoPago()}">Efectivo</td>
+                <td><span th:class="${v.anulada()} ? 'etiqueta vencido' : 'etiqueta vigente'"
+                          th:text="${v.anulada()} ? 'Anulada' : 'Activa'">Activa</span>
+                    <span class="etiqueta rx" th:if="${v.conReceta()}">Rx</span></td>
+                <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(v.total(), 1, 'POINT', 0, 'COMMA')}">$ 0</td>
+                <td class="acciones">
+                    <a class="btn pequeno" th:href="@{/ventas/{id}(id=${v.id()})}">Ver detalle</a>
+                    <form sec:authorize="hasRole('ADMIN')" th:if="${!v.anulada()}" th:action="@{/ventas/{id}/anular(id=${v.id()})}" method="post"
+                          data-confirmar="¿Anular esta venta? El stock volverá a los lotes.">
+                        <button type="submit" class="btn pequeno peligro">Anular</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(ventas)}">
+                <td colspan="9" class="vacio">No hay ventas en esta fecha. Registra una desde «Nueva venta».</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
