@@ -1,0 +1,10 @@
+target/
+*.class
+*.log
+.idea/
+*.iml
+nbproject/private/
+nb-configuration.xml
+.vscode/
+.DS_Store
+deploy/.env
